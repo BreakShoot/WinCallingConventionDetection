@@ -25,6 +25,7 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 		if (hde32.opcode == 0xC2)
 		{
 			unmCallingConvention = UnmanagedStdcall;
+			break;
 		}
 
 		if (hde32.opcode == 0xC3)
