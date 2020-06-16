@@ -15,7 +15,7 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 	uint32_t current_address = this->m_Address;
 
 
-	VirtualProtect(reinterpret_cast<LPVOID>(this->m_Address), 1, dwOldProtection, &dwOldProtection);
+	VirtualProtect(reinterpret_cast<LPVOID>(this->m_Address), 1, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 
 	while (true)
 	{
@@ -32,8 +32,10 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 			const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
 
 			const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-			
-			std::vector<uint32_t> references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
+
+
+			/* std::vector<uint32_t> references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData); */ 
+			std::vector<uint32_t> references = GetXRefs(this->m_Address - 0x40000, 0x80000); //replace with the commented one if not accurate; warning, seriously slower
 
 			if (!references.empty())
 			{
@@ -49,9 +51,9 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 					}
 				}
 
-				const float percentage = counter / references.size();
+				const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
 
-				unmCallingConvention = (percentage > 0.2) ? UnmanagedFastcall : UnmanagedCdecl;
+				unmCallingConvention = (percentage > 0.2) ? UnmanagedFastcall : UnmanagedCdecl; //you can modify this yourself.
 			}
 			else 
 				unmCallingConvention = UnmanagedFailure;
@@ -70,12 +72,10 @@ std::vector<uint32_t> CallingClassDetector::GetXRefs(const uint32_t& uiStartAddr
 	std::vector<uint32_t> xrefs;
 	uint32_t current_address = uiStartAddress;
 	DWORD dwOldProtection;
-
+	VirtualProtect(reinterpret_cast<LPVOID>(current_address), 10, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 
 	while (current_address < (uiStartAddress + uiSearchLength))
 	{
-		VirtualProtect((LPVOID)current_address, 1, dwOldProtection, &dwOldProtection);
-
 		hde32s hde32 = { 0 };
 		const int length = hde32_disasm(reinterpret_cast<const void*>(current_address), &hde32);
 
@@ -87,9 +87,9 @@ std::vector<uint32_t> CallingClassDetector::GetXRefs(const uint32_t& uiStartAddr
 			}
 		}
 
-		current_address += length;
-		VirtualProtect((LPVOID)current_address, 1, dwOldProtection, &dwOldProtection);
+		current_address += length;	
 	}
 
+	VirtualProtect(reinterpret_cast<LPVOID>(current_address), 10, dwOldProtection, &dwOldProtection);
 	return xrefs;
 }

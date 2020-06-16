@@ -23,13 +23,19 @@ PEParser32::PEParser32(uint32_t uiData): m_BaseData(uiData)
 PIMAGE_SECTION_HEADER PEParser32::GetSectionHeader(const char* cSectionName) const
 {
 	const PIMAGE_SECTION_HEADER pisHeader = IMAGE_FIRST_SECTION(this->m_NTHeader);
-
+	DWORD dwOldProtection = 0;
+	
+	VirtualProtect((LPVOID)pisHeader, 1, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 	
 	for (int i = 0; i < this->m_NTHeader->FileHeader.NumberOfSections; ++i)
 	{
 		if (strcmp(reinterpret_cast<char const*>(static_cast<PIMAGE_SECTION_HEADER>(pisHeader + i)->Name), cSectionName) == 0)
+		{
+			VirtualProtect((LPVOID)pisHeader, 1, dwOldProtection, &dwOldProtection);
 			return static_cast<PIMAGE_SECTION_HEADER>(pisHeader + i);
+		}
+			
 	}
 	
-	return nullptr;
+	return pisHeader;
 }
