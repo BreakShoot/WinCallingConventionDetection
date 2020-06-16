@@ -25,7 +25,7 @@ public:
 			case UnmanagedFastcall:
 				return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)(params...);
 			default:
-				return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
+				throw std::exception("Attempt to call with convention UnmanagedFailure!");
 		}
 	}
 
@@ -45,32 +45,30 @@ public:
 		case UnmanagedFastcall:
 			return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)();
 		default:
-			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
+			throw std::exception("Attempt to call with convention UnmanagedFailure!");
 		}
 	}
 
 	UnmanagedPointer(uint32_t dwAddress, uint32_t dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)))
 	{
 		this->m_Address = dwAddress;
-		this->m_Detector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
-		this->m_CallingConvention = m_Detector->GetCallingConvention();
+		this->m_CallingConvention = CallingConventionDetector(this->m_Address, dwBaseAddress).GetCallingConvention();
 	}
 
 	UnmanagedPointer(const char* bMask, const char* szMask, const uint32_t& dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), const uint32_t& dwLen = 0x7FFFFFFF)
 	{
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
-		this->m_Detector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
-		this->m_CallingConvention = m_Detector->GetCallingConvention();
-	}
 
-	~UnmanagedPointer()
-	{
-		delete m_Detector;
+		if (!this->m_Address)
+		{
+			throw std::exception("Failed to find pattern!");
+		}
+
+		this->m_CallingConvention = CallingConventionDetector(this->m_Address, dwBaseAddress).GetCallingConvention();
 	}
 
 private:
 	uint32_t m_Address;
-	CallingConventionDetector* m_Detector;
 	UnmanagedCallingConvention m_CallingConvention;
 
 	static bool DataCompare(const unsigned char* pData, const unsigned char* bMask, const char* szMask)

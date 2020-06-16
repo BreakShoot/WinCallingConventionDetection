@@ -78,9 +78,9 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 		current_address += length;
 	}
 
-	
 
-	
+
+
 	VirtualProtect(reinterpret_cast<LPVOID>(this->m_Address), 1, dwOldProtection, &dwOldProtection);
 
 	return unmCallingConvention;
@@ -88,21 +88,21 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 
 void CallingConventionDetector::PrintCallingConvention() const
 {
-	char* ccCallingConventionStr = nullptr;
+	const char* ccCallingConventionStr;
 
 	switch (this->unmCallingConvention)
 	{
 		case UnmanagedCdecl:
-			ccCallingConventionStr = (char*)"UnmanagedCdecl";
+			ccCallingConventionStr = "UnmanagedCdecl";
 			break;
 		case UnmanagedStdcall:
-			ccCallingConventionStr = (char*)"UnmanagedStdcall";
+			ccCallingConventionStr = "UnmanagedStdcall";
 			break;
 		case UnmanagedFastcall:
-			ccCallingConventionStr = (char*)"UnmanagedFastcall";
+			ccCallingConventionStr = "UnmanagedFastcall";
 			break;
-		case UnmanagedFailure:
-			ccCallingConventionStr = (char*)"UnmanagedFailure";
+		default:
+			ccCallingConventionStr = "UnmanagedFailure";
 			break;
 	}
 
@@ -125,7 +125,7 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
-	
+
 	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 	
 	while (current_address < (uiStartAddress + uiSearchLength))
