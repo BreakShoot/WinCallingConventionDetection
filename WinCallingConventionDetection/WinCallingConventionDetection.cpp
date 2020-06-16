@@ -1,4 +1,4 @@
-#include "CallingConventionDetector.hpp"
+#include "UnmanagedPointer.hpp"
 
 
 DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
@@ -14,15 +14,8 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
     freopen_s(&safe_handle_stream, "CONOUT$", "w", stdout);
     freopen_s(&safe_handle_stream, "CONOUT$", "w", stderr);
 
-    auto* ccd = new CallingClassDetector(0x118B220, reinterpret_cast<uint32_t>(GetModuleHandle(NULL)));
-    ccd->PrintCallingConvention();
-
-    auto* ccd2 = new CallingClassDetector(0x118B700, reinterpret_cast<uint32_t>(GetModuleHandle(NULL)));
-    ccd2->PrintCallingConvention();
-
-    auto* ccd3 = new CallingClassDetector(0x118B8D0, reinterpret_cast<uint32_t>(GetModuleHandle(NULL)));
-    ccd3->PrintCallingConvention();
-
+    UnmanagedPointer<int(int, const char*...)> robloxPrint(0x5EEFD0);
+    robloxPrint(0, "%s %s", "i am ", "very cool");
 
     getchar();
 	

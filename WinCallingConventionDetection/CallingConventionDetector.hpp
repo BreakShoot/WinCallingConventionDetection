@@ -11,15 +11,16 @@ enum UnmanagedCallingConvention
 	UnmanagedFailure
 };
 
-class CallingClassDetector
+class CallingConventionDetector
 {
 public:
-	CallingClassDetector(uint32_t uiAddress, uint32_t uiData);
-	~CallingClassDetector();
+	CallingConventionDetector(uint32_t uiAddress, uint32_t uiData, bool bWholeScan = false);
+	~CallingConventionDetector();
 	void PrintCallingConvention() const;
+	UnmanagedCallingConvention GetCallingConvention() const;
 	
 private:
-	UnmanagedCallingConvention GetCallingConvention() const;
+	UnmanagedCallingConvention GetCallingConvention(bool bWholeScan) const;
 	std::vector<uint32_t> GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const;
 	UnmanagedCallingConvention unmCallingConvention;
 	unsigned long long m_Duration;

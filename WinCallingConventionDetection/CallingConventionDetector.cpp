@@ -2,23 +2,23 @@
 #include "hde32/hde32.h"
 
 
-CallingClassDetector::CallingClassDetector(uint32_t uiAddress, uint32_t uiData): m_BaseData(uiData)
+CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_t uiData, bool bWholeScan): m_BaseData(uiData)
 {
-	this->m_Address = uiAddress - 0x400000 + uiData; //assuming 0x400000 is the base. Should change if needed
+	this->m_Address = uiAddress;
 	this->m_PEParser = new PEParser32(uiData);
 
 	auto chronoStart = std::chrono::high_resolution_clock::now();
-	this->unmCallingConvention = this->GetCallingConvention();
+	this->unmCallingConvention = this->GetCallingConvention(bWholeScan);
 	auto chronoEnd = std::chrono::high_resolution_clock::now();
 	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
 }
 
-CallingClassDetector::~CallingClassDetector()
+CallingConventionDetector::~CallingConventionDetector()
 {
 	delete this->m_PEParser;
 }
 
-UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
+UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool bWholeScan) const
 {
 	DWORD dwOldProtection;
 	UnmanagedCallingConvention unmCallingConvention;
@@ -40,13 +40,16 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 
 		if (hde32.opcode == 0xC3)
 		{			
-			const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
+			std::vector<uint32_t> references;
 
-			const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-			/* std::vector<uint32_t> references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData); */ 
-			std::vector<uint32_t> references = GetXRefs(this->m_Address - 0x40000, 0x80000); //Should be the whole .text section if you want to map out everything,
-																												   //But this is about the range of the lua lib in memory; this really quickens
-																												   //up scanning
+			if (bWholeScan)
+			{
+				const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
+				const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
+				references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
+			}
+			else
+				references = GetXRefs(this->m_Address - 0x40000, 0x80000);
 
 			if (!references.empty())
 			{
@@ -83,7 +86,7 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 	return unmCallingConvention;
 }
 
-void CallingClassDetector::PrintCallingConvention() const
+void CallingConventionDetector::PrintCallingConvention() const
 {
 	char* ccCallingConventionStr = nullptr;
 
@@ -107,7 +110,12 @@ void CallingClassDetector::PrintCallingConvention() const
 	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
 }
 
-std::vector<uint32_t> CallingClassDetector::GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const
+UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() const
+{
+	return this->unmCallingConvention;
+}
+
+std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const
 {
 	std::vector<uint32_t> xrefs;
 	uint32_t current_address = uiStartAddress;

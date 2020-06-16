@@ -44,5 +44,8 @@
     <ClInclude Include="hde32\table32.h">
       <Filter>Header Files\hde32</Filter>
     </ClInclude>
+    <ClInclude Include="UnmanagedPointer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
