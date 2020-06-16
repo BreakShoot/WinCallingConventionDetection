@@ -38,14 +38,14 @@ public:
 
 		switch (this->m_CallingConvention)
 		{
-		case UnmanagedCdecl:
-			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
-		case UnmanagedStdcall:
-			return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)();
-		case UnmanagedFastcall:
-			return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)();
-		default:
-			throw std::exception("Attempt to call with convention UnmanagedFailure!");
+			case UnmanagedCdecl:
+				return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
+			case UnmanagedStdcall:
+				return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)();
+			case UnmanagedFastcall:
+				return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)();
+			default:
+				throw std::exception("Attempt to call with convention UnmanagedFailure!");
 		}
 	}
 
