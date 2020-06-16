@@ -6,12 +6,22 @@ CallingClassDetector::CallingClassDetector(uint32_t uiAddress, uint32_t uiData):
 {
 	this->m_Address = uiAddress - 0x400000 + uiData; //assuming 0x400000 is the base. Should change if needed
 	this->m_PEParser = new PEParser32(uiData);
+
+	auto chronoStart = std::chrono::high_resolution_clock::now();
+	this->unmCallingConvention = this->GetCallingConvention();
+	auto chronoEnd = std::chrono::high_resolution_clock::now();
+	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
+}
+
+CallingClassDetector::~CallingClassDetector()
+{
+	delete this->m_PEParser;
 }
 
 UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 {
-	UnmanagedCallingConvention unmCallingConvention;
 	DWORD dwOldProtection;
+	UnmanagedCallingConvention unmCallingConvention;
 	uint32_t current_address = this->m_Address;
 
 
@@ -25,6 +35,7 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 		if (hde32.opcode == 0xC2)
 		{
 			unmCallingConvention = UnmanagedStdcall;
+			break;
 		}
 
 		if (hde32.opcode == 0xC3)
@@ -32,10 +43,10 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 			const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
 
 			const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-
-
 			/* std::vector<uint32_t> references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData); */ 
-			std::vector<uint32_t> references = GetXRefs(this->m_Address - 0x40000, 0x80000); //replace with the commented one if not accurate; warning, seriously slower
+			std::vector<uint32_t> references = GetXRefs(this->m_Address - 0x40000, 0x80000); //Should be the whole .text section if you want to map out everything,
+																												   //But this is about the range of the lua lib in memory; this really quickens
+																												   //up scanning
 
 			if (!references.empty())
 			{
@@ -45,7 +56,8 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 				{
 					if (*reinterpret_cast<PBYTE>(reference - 2) == 0x8B &&
 					   (*reinterpret_cast<PBYTE>(reference - 1) == 0xCE ||
-						*reinterpret_cast<PBYTE>(reference - 1) == 0xC8))
+						*reinterpret_cast<PBYTE>(reference - 1) == 0xC8 ||
+						*reinterpret_cast<PBYTE>(reference - 1) == 0xCF))
 					{
 						counter++;
 					}
@@ -53,7 +65,7 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 
 				const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
 
-				unmCallingConvention = (percentage > 0.2) ? UnmanagedFastcall : UnmanagedCdecl; //you can modify this yourself.
+				unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedCdecl; //you can modify this yourself.
 			}
 			else 
 				unmCallingConvention = UnmanagedFailure;
@@ -63,17 +75,51 @@ UnmanagedCallingConvention CallingClassDetector::GetCallingConvention() const
 		current_address += length;
 	}
 
+	
+
+	
 	VirtualProtect(reinterpret_cast<LPVOID>(this->m_Address), 1, dwOldProtection, &dwOldProtection);
+
 	return unmCallingConvention;
+}
+
+void CallingClassDetector::PrintCallingConvention() const
+{
+	char* ccCallingConventionStr = nullptr;
+
+	switch (this->unmCallingConvention)
+	{
+		case UnmanagedCdecl:
+			ccCallingConventionStr = (char*)"UnmanagedCdecl";
+			break;
+		case UnmanagedStdcall:
+			ccCallingConventionStr = (char*)"UnmanagedStdcall";
+			break;
+		case UnmanagedFastcall:
+			ccCallingConventionStr = (char*)"UnmanagedFastcall";
+			break;
+		case UnmanagedFailure:
+			ccCallingConventionStr = (char*)"UnmanagedFailure";
+			break;
+	}
+
+	
+	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
 }
 
 std::vector<uint32_t> CallingClassDetector::GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const
 {
 	std::vector<uint32_t> xrefs;
 	uint32_t current_address = uiStartAddress;
+	uint32_t page_amount = 0;
 	DWORD dwOldProtection;
-	VirtualProtect(reinterpret_cast<LPVOID>(current_address), 10, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 
+	SYSTEM_INFO sysInfo;
+	GetSystemInfo(&sysInfo);
+	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
+	
+	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, PAGE_EXECUTE_READWRITE, &dwOldProtection);
+	
 	while (current_address < (uiStartAddress + uiSearchLength))
 	{
 		hde32s hde32 = { 0 };
@@ -90,6 +136,6 @@ std::vector<uint32_t> CallingClassDetector::GetXRefs(const uint32_t& uiStartAddr
 		current_address += length;	
 	}
 
-	VirtualProtect(reinterpret_cast<LPVOID>(current_address), 10, dwOldProtection, &dwOldProtection);
+	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, dwOldProtection, &dwOldProtection);
 	return xrefs;
 }
