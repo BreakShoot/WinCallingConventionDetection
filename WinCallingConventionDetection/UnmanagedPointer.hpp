@@ -56,7 +56,7 @@ public:
 		this->m_CallingConvention = m_Detector->GetCallingConvention();
 	}
 
-	UnmanagedPointer(const unsigned char* bMask, char* szMask, const uint32_t& dwBaseAddress, const uint32_t& dwLen)
+	UnmanagedPointer(const char* bMask, const char* szMask, const uint32_t& dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), const uint32_t& dwLen = 0x7FFFFFFF)
 	{
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
 		this->m_Detector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
@@ -81,10 +81,10 @@ private:
 		return (*szMask) == 0;
 	}
 
-	static uint32_t FindPattern(unsigned char* bMask, char* szMask, const uint32_t dwBaseAddress, const uint32_t dwLen)
+	static uint32_t FindPattern(const char* bMask, const char* szMask, const uint32_t dwBaseAddress, const uint32_t dwLen)
 	{
 		for (unsigned long i = 0; i < dwLen; i++)
-			if (DataCompare(reinterpret_cast<unsigned char*>(dwBaseAddress + i), bMask, szMask))
+			if (DataCompare(reinterpret_cast<unsigned char*>(dwBaseAddress + i), (unsigned char*)(bMask), szMask))
 				return static_cast<uint32_t>(dwBaseAddress + i);
 		return 0;
 	}

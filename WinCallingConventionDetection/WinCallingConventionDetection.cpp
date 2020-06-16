@@ -15,9 +15,12 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
     freopen_s(&safe_handle_stream, "CONOUT$", "w", stderr);
 
 
-    auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-    UnmanagedPointer<int(int, const char*...)> robloxPrint(fixOffset(0x5EEFD0));
-    robloxPrint(0, "%s %s", "i am ", "very cool");
+    UnmanagedPointer<int(DWORD, int)> rlua_gettop(
+        "\x55\x8B\xEC\x8B\x4D\x08\x8B\x41\x14\x2B\x41\x08",
+        "xxxxxxxxxxxx");
+
+    DWORD lua_State = 0;
+    rlua_gettop(lua_State, -1);
 
     getchar();
 	
