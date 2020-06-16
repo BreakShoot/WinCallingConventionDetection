@@ -51,7 +51,7 @@ public:
 
 	UnmanagedPointer(uint32_t dwAddress, uint32_t dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)))
 	{
-		this->m_Address = dwAddress - 0x400000 + dwBaseAddress;
+		this->m_Address = dwAddress;
 		this->m_Detector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = m_Detector->GetCallingConvention();
 	}
