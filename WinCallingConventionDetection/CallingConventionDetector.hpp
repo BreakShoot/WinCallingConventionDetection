@@ -21,6 +21,8 @@ public:
 	
 private:
 	static void FindNeedleInHayStack(const uint32_t& target, std::vector<uint32_t>* xrefs, const uint32_t& uiStartAddress, const uint32_t& uiSearchLength);
+	bool SetsEdxOrEcxRegister(const uint32_t& uiAddress) const;
+	static bool CallerCleansUpStack(const uint32_t& uiAddress);
 	UnmanagedCallingConvention GetCallingConvention(bool bWholeScan) const;
 	std::vector<uint32_t> GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const;
 	UnmanagedCallingConvention unmCallingConvention;

@@ -21,6 +21,27 @@ CallingConventionDetector::~CallingConventionDetector()
 	delete this->m_PEParser;
 }
 
+bool CallingConventionDetector::SetsEdxOrEcxRegister(const uint32_t& uiAddress) const
+{
+	for (int i = 1; i < 6; ++i)
+	{
+		if (*reinterpret_cast<PBYTE>(uiAddress - i) == 0x68)
+		{
+			return this->SetsEdxOrEcxRegister(uiAddress - i);
+		}
+	}
+
+	return  *reinterpret_cast<PBYTE>(uiAddress - 2) == 0x8B  &&
+			(*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCE ||
+			*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xC8  ||
+			*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCF);
+}
+
+bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
+{
+	return *reinterpret_cast<PBYTE>(uiAddress + 5) == 0x83 && *reinterpret_cast<PBYTE>(uiAddress + 6) == 0xC4;
+}
+
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool bWholeScan) const
 {
 	DWORD dwOldProtection;
@@ -35,48 +56,42 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 		hde32s hde32 = { 0 };
 		const int length = hde32_disasm(reinterpret_cast<const void*>(current_address), &hde32);
 
-		if (hde32.opcode == 0xC2)
+		std::vector<uint32_t> references;
+
+		if (bWholeScan)
 		{
-			unmCallingConvention = UnmanagedStdcall;
-			break;
+			const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
+			const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
+			references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
 		}
+		else
+			references = GetXRefs(this->m_Address - 0x40000, 0x80000);
 
-		if (hde32.opcode == 0xC3)
-		{			
-			std::vector<uint32_t> references;
+		if (!references.empty())
+		{
+			int counter = 0;
 
-			if (bWholeScan)
+			for (const uint32_t& reference : references)
 			{
-				const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
-				const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-				references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
-			}
-			else
-				references = GetXRefs(this->m_Address - 0x40000, 0x80000);
-
-			if (!references.empty())
-			{
-				int counter = 0;
-
-				for (const uint32_t& reference : references)
+				if (this->CallerCleansUpStack(reference))
 				{
-					if (*reinterpret_cast<PBYTE>(reference - 2) == 0x8B &&
-					   (*reinterpret_cast<PBYTE>(reference - 1) == 0xCE ||
-						*reinterpret_cast<PBYTE>(reference - 1) == 0xC8 ||
-						*reinterpret_cast<PBYTE>(reference - 1) == 0xCF))
-					{
-						counter++;
-					}
+					unmCallingConvention = UnmanagedCdecl;
+					break;
 				}
-
-				const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
-
-				unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedCdecl; //you can modify this yourself.
+				
+				if (this->SetsEdxOrEcxRegister(reference))
+				{
+					counter++;
+				}
 			}
-			else 
-				unmCallingConvention = UnmanagedFailure;
-			break;
+
+			const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
+
+			unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
 		}
+		else
+			unmCallingConvention = UnmanagedFailure;
+		break;
 
 		current_address += length;
 	}
