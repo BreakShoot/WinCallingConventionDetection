@@ -52,7 +52,9 @@ public:
 	UnmanagedPointer(uint32_t dwAddress, uint32_t dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)))
 	{
 		this->m_Address = dwAddress;
-		this->m_CallingConvention = CallingConventionDetector(this->m_Address, dwBaseAddress).GetCallingConvention();
+		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
+		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		delete ccDetector;
 	}
 
 	UnmanagedPointer(const char* bMask, const char* szMask, const uint32_t& dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), const uint32_t& dwLen = 0x7FFFFFFF)
@@ -64,7 +66,9 @@ public:
 			throw std::exception("Failed to find pattern!");
 		}
 
-		this->m_CallingConvention = CallingConventionDetector(this->m_Address, dwBaseAddress).GetCallingConvention();
+		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
+		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		delete ccDetector;
 	}
 
 private:
