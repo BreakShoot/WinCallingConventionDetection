@@ -1,4 +1,7 @@
 #include "CallingConventionDetector.hpp"
+
+#include <thread>
+
 #include "hde32/hde32.h"
 
 
@@ -115,8 +118,31 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() con
 	return this->unmCallingConvention;
 }
 
+void CallingConventionDetector::FindNeedleInHayStack(const uint32_t& target, std::vector<uint32_t>* xrefs,
+	const uint32_t& uiStartAddress, const uint32_t& uiSearchLength)
+{
+	int uiCurrentAddress = uiStartAddress;
+
+	while (uiCurrentAddress < uiStartAddress + uiSearchLength)
+	{
+		hde32s hde32 = { 0 };
+		const int length = hde32_disasm(reinterpret_cast<const void*>(uiCurrentAddress), &hde32);
+
+		if (hde32.opcode == 0xE8)
+		{
+			if (*reinterpret_cast<uint32_t*>(uiCurrentAddress + 1) == (target - uiCurrentAddress - 5)) //found call to target_address
+			{
+				xrefs->push_back(uiCurrentAddress);
+			}
+		}
+
+		uiCurrentAddress += length;
+	}
+}
+
 std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const
 {
+	std::vector<std::thread> threads;
 	std::vector<uint32_t> xrefs;
 	uint32_t current_address = uiStartAddress;
 	uint32_t page_amount = 0;
@@ -127,23 +153,22 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
 	
 	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, PAGE_EXECUTE_READWRITE, &dwOldProtection);
-	
-	while (current_address < (uiStartAddress + uiSearchLength))
+
+
+	for (uint32_t i = uiStartAddress; i < (uiStartAddress + uiSearchLength); i += (sysInfo.dwPageSize * 10))
 	{
-		hde32s hde32 = { 0 };
-		const int length = hde32_disasm(reinterpret_cast<const void*>(current_address), &hde32);
-
-		if (hde32.opcode == 0xE8)
-		{
-			if (*reinterpret_cast<uint32_t*>(current_address + 1) == (this->m_Address - current_address - 5)) //found call to target_address
-			{
-				xrefs.push_back(current_address);
-			}
-		}
-
-		current_address += length;	
+		if (i > uiStartAddress + uiSearchLength)
+			i = uiStartAddress + uiSearchLength - (sysInfo.dwPageSize * 10);
+		
+		std::thread thread(FindNeedleInHayStack, this->m_Address, &xrefs, i, (sysInfo.dwPageSize * 10));
+		threads.push_back(std::move(thread));
 	}
-
+	
+	for (std::thread& thread : threads)
+		if (thread.joinable())
+			thread.join();
+	
 	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, dwOldProtection, &dwOldProtection);
 	return xrefs;
 }
+

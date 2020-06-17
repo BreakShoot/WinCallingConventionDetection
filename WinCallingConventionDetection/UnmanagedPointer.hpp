@@ -54,6 +54,7 @@ public:
 		this->m_Address = dwAddress;
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		ccDetector->PrintCallingConvention();
 		delete ccDetector;
 	}
 
@@ -62,6 +63,7 @@ public:
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		ccDetector->PrintCallingConvention();
 		delete ccDetector;
 	}
 
