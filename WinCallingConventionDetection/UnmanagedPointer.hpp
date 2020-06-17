@@ -52,25 +52,21 @@ public:
 	UnmanagedPointer(uint32_t dwAddress, uint32_t dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)))
 	{
 		this->m_Address = dwAddress;
-		this->m_Detector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
-		this->m_CallingConvention = m_Detector->GetCallingConvention();
+		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
+		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		delete ccDetector;
 	}
 
-	UnmanagedPointer(const char* bMask, const char* szMask, const uint32_t& dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), const uint32_t& dwLen = 0x7FFFFFFF)
+	UnmanagedPointer(const char* bMask, const char* szMask, const uint32_t& dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), const uint32_t& dwLen = 0x7FFFFFF)
 	{
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
-		this->m_Detector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
-		this->m_CallingConvention = m_Detector->GetCallingConvention();
-	}
-
-	~UnmanagedPointer()
-	{
-		delete m_Detector;
+		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
+		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		delete ccDetector;
 	}
 
 private:
 	uint32_t m_Address;
-	CallingConventionDetector* m_Detector;
 	UnmanagedCallingConvention m_CallingConvention;
 
 	static bool DataCompare(const unsigned char* pData, const unsigned char* bMask, const char* szMask)
