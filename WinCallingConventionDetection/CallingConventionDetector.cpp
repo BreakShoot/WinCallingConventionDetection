@@ -121,12 +121,12 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() con
 void CallingConventionDetector::FindNeedleInHayStack(const uint32_t& target, std::vector<uint32_t>* xrefs,
 	const uint32_t& uiStartAddress, const uint32_t& uiSearchLength)
 {
-	int uiCurrentAddress = uiStartAddress;
+	uint32_t uiCurrentAddress = uiStartAddress;
 
 	while (uiCurrentAddress < uiStartAddress + uiSearchLength)
 	{
 		hde32s hde32 = { 0 };
-		const int length = hde32_disasm(reinterpret_cast<const void*>(uiCurrentAddress), &hde32);
+		const unsigned length = hde32_disasm(reinterpret_cast<const void*>(uiCurrentAddress), &hde32);
 
 		if (hde32.opcode == 0xE8)
 		{
@@ -150,17 +150,17 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
+	const uint32_t uiThreadScanSize = sysInfo.dwPageSize * 15;
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
 	
 	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 
-
-	for (uint32_t i = uiStartAddress; i < (uiStartAddress + uiSearchLength); i += (sysInfo.dwPageSize * 10))
+	for (uint32_t i = uiStartAddress; i < (uiStartAddress + uiSearchLength); i += uiThreadScanSize)
 	{
 		if (i > uiStartAddress + uiSearchLength)
-			i = uiStartAddress + uiSearchLength - (sysInfo.dwPageSize * 10);
+			i = uiStartAddress + uiSearchLength - uiThreadScanSize;
 		
-		std::thread thread(FindNeedleInHayStack, this->m_Address, &xrefs, i, (sysInfo.dwPageSize * 10));
+		std::thread thread(FindNeedleInHayStack, this->m_Address, &xrefs, i, uiThreadScanSize);
 		threads.push_back(std::move(thread));
 	}
 	

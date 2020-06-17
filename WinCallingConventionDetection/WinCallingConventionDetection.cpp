@@ -16,8 +16,7 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 
 
     auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-    UnmanagedPointer<int(int, const char*...)> robloxPrint(fixOffset(0x118B220));
-    UnmanagedPointer<int(int)> rlua_gettop(fixOffset(0x118B8D0));
+    UnmanagedPointer<int(int, const char*...)> robloxPrint(fixOffset(0x5EEFD0));
     robloxPrint(0, "%s %s", "i am ", "very cool");
 
 
