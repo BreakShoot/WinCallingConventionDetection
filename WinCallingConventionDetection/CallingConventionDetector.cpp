@@ -29,13 +29,16 @@ bool CallingConventionDetector::SetsEdxOrEcxRegister(const uint32_t& uiAddress) 
 		{
 			return this->SetsEdxOrEcxRegister(uiAddress - i);
 		}
+		if (*reinterpret_cast<PBYTE>(uiAddress - (i + 1)) == 0x8B &&
+				(*reinterpret_cast<PBYTE>(uiAddress - i) == 0xCE ||
+				*reinterpret_cast<PBYTE>(uiAddress  - i) == 0xC8 ||
+				*reinterpret_cast<PBYTE>(uiAddress  - i) == 0xCF))
+		{
+			return true;
+		}
 	}
-
 	
-	return  *reinterpret_cast<PBYTE>(uiAddress - 2) == 0x8B  &&
-		   (*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCE  ||
-			*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xC8  ||
-			*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCF);
+	return false;
 }
 
 bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
