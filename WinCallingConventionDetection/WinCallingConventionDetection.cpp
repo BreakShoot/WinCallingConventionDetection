@@ -1,4 +1,5 @@
 #include "UnmanagedPointer.hpp"
+#include "hde32/hde32.h"
 
 
 DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
@@ -16,10 +17,7 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 
 
     auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-    UnmanagedPointer<int(int, const char*...)> robloxPrint(fixOffset(0x118CB60));
-    UnmanagedPointer<int(int, const char*...)> asdasd(fixOffset(0x118C240));
-    //robloxPrint(0, "%s %s", "i am ", "very cool");
-
+    
 
     getchar();
 	

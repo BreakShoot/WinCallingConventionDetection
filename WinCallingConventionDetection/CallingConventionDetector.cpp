@@ -25,81 +25,74 @@ bool CallingConventionDetector::SetsEdxOrEcxRegister(const uint32_t& uiAddress) 
 {
 	for (int i = 1; i < 6; ++i)
 	{
-		if (*reinterpret_cast<PBYTE>(uiAddress - i) == 0x68)
+		if (*reinterpret_cast<PBYTE>(uiAddress - i) == 0x68) /* Got push, ignore it and rerun. */
 		{
 			return this->SetsEdxOrEcxRegister(uiAddress - i);
 		}
 	}
 
+	
 	return  *reinterpret_cast<PBYTE>(uiAddress - 2) == 0x8B  &&
-			(*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCE ||
+		   (*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCE  ||
 			*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xC8  ||
 			*reinterpret_cast<PBYTE>(uiAddress - 1) == 0xCF);
 }
 
 bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 {
-	return *reinterpret_cast<PBYTE>(uiAddress + 5) == 0x83 && *reinterpret_cast<PBYTE>(uiAddress + 6) == 0xC4;
+	uint32_t uiStartAddress = uiAddress + 5; //next statement
+	hde32s hde32;
+
+	do {
+		const uint32_t length = hde32_disasm(reinterpret_cast<const void*>(uiStartAddress), &hde32);
+
+		if (hde32.opcode == 0x83 && hde32.modrm == 0xC4) // add esp 
+			return true;
+
+		uiStartAddress += length;
+	} while (hde32.opcode != 0xE8); //call
+
+	return false;
 }
 
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool bWholeScan) const
 {
 	DWORD dwOldProtection;
-	UnmanagedCallingConvention unmCallingConvention;
-	uint32_t current_address = this->m_Address;
+	UnmanagedCallingConvention unmCallingConvention = UnmanagedFailure;
+	std::vector<uint32_t> references;
 
-
-	VirtualProtect(reinterpret_cast<LPVOID>(this->m_Address), 1, PAGE_EXECUTE_READWRITE, &dwOldProtection);
-
-	while (true)
+	if (bWholeScan)
 	{
-		hde32s hde32 = { 0 };
-		const int length = hde32_disasm(reinterpret_cast<const void*>(current_address), &hde32);
+		const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
+		const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
+		references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
+	}
+	else
+		references = GetXRefs(this->m_Address - 0x40000, 0x80000);
 
-		std::vector<uint32_t> references;
+	if (!references.empty())
+	{
+		int counter = 0;
 
-		if (bWholeScan)
+		for (const uint32_t& reference : references)
 		{
-			const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
-			const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-			references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
-		}
-		else
-			references = GetXRefs(this->m_Address - 0x40000, 0x80000);
-
-		if (!references.empty())
-		{
-			int counter = 0;
-
-			for (const uint32_t& reference : references)
+			if (this->CallerCleansUpStack(reference))
 			{
-				if (this->CallerCleansUpStack(reference))
-				{
-					unmCallingConvention = UnmanagedCdecl;
-					break;
-				}
-				
-				if (this->SetsEdxOrEcxRegister(reference))
-				{
-					counter++;
-				}
+				unmCallingConvention = UnmanagedCdecl;
+				break;
 			}
+			if (this->SetsEdxOrEcxRegister(reference))
+			{
+				counter++;
+			}
+		}
 
+		if (unmCallingConvention != UnmanagedCdecl)
+		{
 			const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
-
 			unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
 		}
-		else
-			unmCallingConvention = UnmanagedFailure;
-		break;
-
-		current_address += length;
 	}
-
-	
-
-	
-	VirtualProtect(reinterpret_cast<LPVOID>(this->m_Address), 1, dwOldProtection, &dwOldProtection);
 
 	return unmCallingConvention;
 }
@@ -159,14 +152,13 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 {
 	std::vector<std::thread> threads;
 	std::vector<uint32_t> xrefs;
-	uint32_t current_address = uiStartAddress;
 	uint32_t page_amount = 0;
 	DWORD dwOldProtection;
 
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
-	const uint32_t uiThreadScanSize = sysInfo.dwPageSize * 15;
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
+	const uint32_t uiThreadScanSize = sysInfo.dwPageSize * (page_amount / 5); //create 5-6 threads
 	
 	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 
