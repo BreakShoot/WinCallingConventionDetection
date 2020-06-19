@@ -17,7 +17,7 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 
 
     auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-    
+    UnmanagedPointer<void()> ok(fixOffset(0x11A6690));
 
     getchar();
 	

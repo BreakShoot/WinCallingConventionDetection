@@ -46,6 +46,7 @@ bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 	uint32_t uiStartAddress = uiAddress + 5; //next statement
 	hde32s hde32;
 
+	
 	do {
 		const uint32_t length = hde32_disasm(reinterpret_cast<const void*>(uiStartAddress), &hde32);
 
@@ -68,7 +69,7 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 	{
 		const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
 		const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-		references = GetXRefs(uiRuntimeBaseAddress, pish->SizeOfRawData);
+		references = GetXRefs(uiRuntimeBaseAddress, pish->Misc.VirtualSize - 0x1000); //defeat padding
 	}
 	else
 		references = GetXRefs(this->m_Address - 0x40000, 0x80000);
@@ -163,7 +164,7 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
 	const uint32_t uiThreadScanSize = sysInfo.dwPageSize * (page_amount / 5); //create 5-6 threads
 	
-	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, PAGE_EXECUTE_READWRITE, &dwOldProtection);
+	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), uiSearchLength, PAGE_EXECUTE_READWRITE, &dwOldProtection);
 
 	for (uint32_t i = uiStartAddress; i < (uiStartAddress + uiSearchLength); i += uiThreadScanSize)
 	{
@@ -178,7 +179,7 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 		if (thread.joinable())
 			thread.join();
 	
-	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), page_amount, dwOldProtection, &dwOldProtection);
+	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), uiSearchLength, dwOldProtection, &dwOldProtection);
 	return xrefs;
 }
 
