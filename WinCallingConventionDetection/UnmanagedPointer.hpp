@@ -52,7 +52,7 @@ public:
 	UnmanagedPointer(uint32_t dwAddress, uint32_t dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)))
 	{
 		this->m_Address = dwAddress;
-		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress, true);
+		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
 		this->RemoveReturnCheck();
 		ccDetector->PrintCallingConvention();
@@ -62,7 +62,7 @@ public:
 	UnmanagedPointer(const char* bMask, const char* szMask, const uint32_t& dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), const uint32_t& dwLen = 0x7FFFFFF)
 	{
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
-		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress, true);
+		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
 		ccDetector->PrintCallingConvention();
 		this->RemoveReturnCheck();
