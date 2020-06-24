@@ -140,11 +140,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CallingConventionDetector.cpp" />
+    <ClCompile Include="hde32\hde32.c" />
     <ClCompile Include="PEParser32.cpp" />
     <ClCompile Include="WinCallingConventionDetection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CallingConventionDetector.hpp" />
+    <ClInclude Include="hde32\hde32.h" />
+    <ClInclude Include="hde32\table32.h" />
     <ClInclude Include="PEParser32.hpp" />
     <ClInclude Include="UnmanagedPointer.hpp" />
   </ItemGroup>

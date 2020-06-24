@@ -57,12 +57,12 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 
 
     auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-	/*DWORD adr = fixOffset(0x1A1F524);
+	DWORD adr = fixOffset(0x1A1F524);
 	DWORD scr = Memory::Scan(PAGE_READWRITE, (char*)&adr, (char*)"xxxx");
-	DWORD ls = scr + 164 + *(DWORD*)(scr + 164);*/
+	DWORD ls = scr + 164 + *(DWORD*)(scr + 164);
 	
     UnmanagedPointer<int(int, const char*, unsigned)> rlua_pushlstring(fixOffset(0x11A63B0));
-	///*rlua_pushlstring(ls, "str", 3);*/
+	rlua_pushlstring(ls, "str", 3);
 
 	
     getchar();

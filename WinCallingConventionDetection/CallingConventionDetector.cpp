@@ -1,5 +1,8 @@
 #include "CallingConventionDetector.hpp"
+
 #include <thread>
+
+#include "hde32/hde32.h"
 
 
 CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_t uiData, bool bWholeScan): m_BaseData(uiData)
@@ -41,13 +44,18 @@ bool CallingConventionDetector::SetsEdxOrEcxRegister(const uint32_t& uiAddress) 
 bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 {
 	uint32_t uiStartAddress = uiAddress + 5; //next statement
+	hde32s hde32;
 
-	while (*reinterpret_cast<PBYTE>(uiStartAddress) != 0xE8 || *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC3 || *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC2)  //call/ret/retn
-	{
-		if (*reinterpret_cast<PBYTE>(uiStartAddress++) == 0x83 && *reinterpret_cast<PBYTE>(uiStartAddress) == 0xC4) // add esp 
-			return true;
-	}
 	
+	do {
+		const uint32_t length = hde32_disasm(reinterpret_cast<const void*>(uiStartAddress), &hde32);
+
+		if (hde32.opcode == 0x83 && hde32.modrm == 0xC4) // add esp 
+			return true;
+
+		uiStartAddress += length;
+	} while (hde32.opcode != 0xE8); //call
+
 	return false;
 }
 
@@ -125,13 +133,22 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() con
 void CallingConventionDetector::FindNeedleInHayStack(const uint32_t& target, std::vector<uint32_t>* xrefs,
 	const uint32_t& uiStartAddress, const uint32_t& uiSearchLength)
 {
-	for (uint32_t uiCurrentAddress = uiStartAddress;  uiCurrentAddress < uiStartAddress + uiSearchLength; uiCurrentAddress++)
+	uint32_t uiCurrentAddress = uiStartAddress;
+
+	while (uiCurrentAddress < uiStartAddress + uiSearchLength)
 	{
-		if (*reinterpret_cast<PBYTE>(uiCurrentAddress) == 0xE8)
+		hde32s hde32 = { 0 };
+		const unsigned length = hde32_disasm(reinterpret_cast<const void*>(uiCurrentAddress), &hde32);
+
+		if (hde32.opcode == 0xE8)
 		{
-			if (*reinterpret_cast<uint32_t*>(uiCurrentAddress + 1) == (target - uiCurrentAddress - 5))
+			if (*reinterpret_cast<uint32_t*>(uiCurrentAddress + 1) == (target - uiCurrentAddress - 5)) //found call to target_address
+			{
 				xrefs->push_back(uiCurrentAddress);
+			}
 		}
+
+		uiCurrentAddress += length;
 	}
 }
 
@@ -147,6 +164,8 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
 	const uint32_t uiThreadScanSize = sysInfo.dwPageSize * (page_amount / 5); //create 5-6 threads
 	
+	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), uiSearchLength, PAGE_EXECUTE_READWRITE, &dwOldProtection);
+
 	for (uint32_t i = uiStartAddress; i < (uiStartAddress + uiSearchLength); i += uiThreadScanSize)
 	{
 		if (i > uiStartAddress + uiSearchLength)
@@ -160,6 +179,7 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 		if (thread.joinable())
 			thread.join();
 	
+	VirtualProtect(reinterpret_cast<LPVOID>(uiStartAddress), uiSearchLength, dwOldProtection, &dwOldProtection);
 	return xrefs;
 }
 
