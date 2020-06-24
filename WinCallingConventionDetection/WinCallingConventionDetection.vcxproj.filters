@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\hde32">
-      <UniqueIdentifier>{19087ae6-d493-4e7e-b3a5-43dd284a695e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinCallingConventionDetection.cpp">
@@ -27,9 +24,6 @@
     <ClCompile Include="CallingConventionDetector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hde32\hde32.c">
-      <Filter>Header Files\hde32</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PEParser32.hpp">
@@ -37,12 +31,6 @@
     </ClInclude>
     <ClInclude Include="CallingConventionDetector.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hde32\hde32.h">
-      <Filter>Header Files\hde32</Filter>
-    </ClInclude>
-    <ClInclude Include="hde32\table32.h">
-      <Filter>Header Files\hde32</Filter>
     </ClInclude>
     <ClInclude Include="UnmanagedPointer.hpp">
       <Filter>Header Files</Filter>
