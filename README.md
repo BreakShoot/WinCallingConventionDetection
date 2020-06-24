@@ -4,9 +4,10 @@ A small library written up to detect the Calling Convention of x86 processes at 
 
 # Features
 * x86 Calling Convention Resolving
-* Completely standalone
+* Completely standalone (latest update removed hde32 dependency)
 * Return Check bypass
 * Pointer wrapper for easily resolving x86 functions
+* Optimized and multithreaded (~8ms whole .text section scan, less than ~1ms lualib scan)
 
 # Method
 1)  Dynamically resolve all XRefs within the lua library range (0x80000 bytes), or scan the whole text section. This can be set when UnmanagedPointer initializes the CallingConventionDetector class within the constructor!
