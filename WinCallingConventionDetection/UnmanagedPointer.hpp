@@ -18,14 +18,14 @@ public:
 
 		switch (this->m_CallingConvention)
 		{
-			case UnmanagedCdecl:
-				return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
-			case UnmanagedStdcall:
-				return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)(params...);
-			case UnmanagedFastcall:
-				return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)(params...);
-			default:
-				return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
+		case UnmanagedCdecl:
+			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
+		case UnmanagedStdcall:
+			return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)(params...);
+		case UnmanagedFastcall:
+			return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)(params...);
+		default:
+			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
 		}
 	}
 
@@ -93,9 +93,9 @@ private:
 
 	void RemoveReturnCheck()
 	{
-		LPVOID   lpAllocation	= nullptr;
+		LPVOID   lpAllocation = nullptr;
 		size_t   szFunctionSize = 0;
-		bool	 bRetcheck		= false;
+		bool	 bRetcheck = false;
 
 		do
 		{

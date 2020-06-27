@@ -53,7 +53,6 @@ bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool bWholeScan) const
 {
-	DWORD dwOldProtection;
 	UnmanagedCallingConvention unmCallingConvention = UnmanagedFailure;
 	std::vector<uint32_t> references;
 
@@ -61,7 +60,7 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 	{
 		const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
 		const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-		references = GetXRefs(uiRuntimeBaseAddress, pish->Misc.VirtualSize - 0x1000); //defeat padding
+		references = GetXRefs(uiRuntimeBaseAddress, pish->Misc.VirtualSize); //defeat padding
 	}
 	else
 		references = GetXRefs(this->m_Address - 0x40000, 0x80000);
@@ -100,16 +99,16 @@ void CallingConventionDetector::PrintCallingConvention() const
 	switch (this->unmCallingConvention)
 	{
 		case UnmanagedCdecl:
-			ccCallingConventionStr = (char*)"UnmanagedCdecl";
+			ccCallingConventionStr = (char*)"__cdecl";
 			break;
 		case UnmanagedStdcall:
-			ccCallingConventionStr = (char*)"UnmanagedStdcall";
+			ccCallingConventionStr = (char*)"__stdcall";
 			break;
 		case UnmanagedFastcall:
-			ccCallingConventionStr = (char*)"UnmanagedFastcall";
+			ccCallingConventionStr = (char*)"__fastcall";
 			break;
 		case UnmanagedFailure:
-			ccCallingConventionStr = (char*)"UnmanagedFailure";
+			ccCallingConventionStr = (char*)"__failure";
 			break;
 	}
 
@@ -140,19 +139,20 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	std::vector<std::thread> threads;
 	std::vector<uint32_t> xrefs;
 	uint32_t page_amount = 0;
-	DWORD dwOldProtection;
-
+	const uint32_t final_address = uiStartAddress + uiSearchLength;
+	
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
 	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
-	const uint32_t uiThreadScanSize = sysInfo.dwPageSize * (page_amount / 5); //create 5-6 threads
+	uint32_t uiThreadScanSize = sysInfo.dwPageSize * (page_amount / 5); //create 5-6 threads
 	
-	for (uint32_t i = uiStartAddress; i < (uiStartAddress + uiSearchLength); i += uiThreadScanSize)
+	for (uint32_t uiCurrentAddress = uiStartAddress; uiCurrentAddress < final_address; uiCurrentAddress += uiThreadScanSize)
 	{
-		if (i > uiStartAddress + uiSearchLength)
-			i = uiStartAddress + uiSearchLength - uiThreadScanSize;
+		if (uiCurrentAddress + uiThreadScanSize > final_address)
+			uiThreadScanSize = final_address - uiCurrentAddress;
+
 		
-		std::thread thread(FindNeedleInHayStack, this->m_Address, &xrefs, i, uiThreadScanSize);
+		std::thread thread(FindNeedleInHayStack, this->m_Address, &xrefs, uiCurrentAddress, uiThreadScanSize);
 		threads.push_back(std::move(thread));
 	}
 	

@@ -1,6 +1,7 @@
 #include "UnmanagedPointer.hpp"
 #include "hde32/hde32.h"
 
+
 namespace Memory
 {
 	bool Compare(const BYTE* pData, const BYTE* bMask, const char* szMask)
@@ -61,9 +62,10 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 	DWORD scr = Memory::Scan(PAGE_READWRITE, (char*)&adr, (char*)"xxxx");
 	DWORD ls = scr + 164 + *(DWORD*)(scr + 164);*/
 	
-    UnmanagedPointer<int(int, const char*, unsigned)> rlua_pushlstring(fixOffset(0x11A63B0));
+    UnmanagedPointer<int(int, const char*, unsigned)> rlua_pushlstring(fixOffset(0x11B5900));
+	UnmanagedPointer<int(int, const char*, unsigned)> rlua_pushlstring2(fixOffset(0x11B72A0));
 	///*rlua_pushlstring(ls, "str", 3);*/
-
+	
 	
     getchar();
 	
