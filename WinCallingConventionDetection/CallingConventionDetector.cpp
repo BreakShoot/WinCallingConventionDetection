@@ -6,11 +6,7 @@ CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_
 {
 	this->m_Address = uiAddress;
 	this->m_PEParser = new PEParser32(uiData);
-
-	auto chronoStart = std::chrono::high_resolution_clock::now();
 	this->unmCallingConvention = this->ScanForCallingConvention();
-	auto chronoEnd = std::chrono::high_resolution_clock::now();
-	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
 }
 
 CallingConventionDetector::~CallingConventionDetector()
@@ -78,30 +74,6 @@ UnmanagedCallingConvention CallingConventionDetector::ScanForCallingConvention()
 	}
 
 	return unmCallingConvention;
-}
-
-void CallingConventionDetector::PrintCallingConvention() const
-{
-	char* ccCallingConventionStr = nullptr;
-
-	switch (this->unmCallingConvention)
-	{
-		case UnmanagedCdecl:
-			ccCallingConventionStr = (char*)"__cdecl";
-			break;
-		case UnmanagedStdcall:
-			ccCallingConventionStr = (char*)"__stdcall";
-			break;
-		case UnmanagedFastcall:
-			ccCallingConventionStr = (char*)"__fastcall";
-			break;
-		case UnmanagedFailure:
-			ccCallingConventionStr = (char*)"__failure";
-			break;
-	}
-
-	
-	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
 }
 
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() const
