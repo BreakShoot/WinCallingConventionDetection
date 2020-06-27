@@ -14,7 +14,7 @@ enum UnmanagedCallingConvention
 class CallingConventionDetector
 {
 public:
-	CallingConventionDetector(uint32_t uiAddress, uint32_t uiData, bool bWholeScan = false);
+	CallingConventionDetector(uint32_t uiAddress, uint32_t uiData);
 	~CallingConventionDetector();
 	void PrintCallingConvention() const;
 	UnmanagedCallingConvention GetCallingConvention() const;
@@ -23,7 +23,7 @@ private:
 	static void FindNeedleInHayStack(const uint32_t& target, std::vector<uint32_t>* xrefs, const uint32_t& uiStartAddress, const uint32_t& uiSearchLength);
 	bool SetsEdxOrEcxRegister(const uint32_t& uiAddress) const;
 	static bool CallerCleansUpStack(const uint32_t& uiAddress);
-	UnmanagedCallingConvention GetCallingConvention(bool bWholeScan) const;
+	UnmanagedCallingConvention ScanForCallingConvention() const;
 	std::vector<uint32_t> GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const;
 	UnmanagedCallingConvention unmCallingConvention;
 	unsigned long long m_Duration;

@@ -2,13 +2,13 @@
 #include <thread>
 
 
-CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_t uiData, bool bWholeScan): m_BaseData(uiData)
+CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_t uiData): m_BaseData(uiData)
 {
 	this->m_Address = uiAddress;
 	this->m_PEParser = new PEParser32(uiData);
 
 	auto chronoStart = std::chrono::high_resolution_clock::now();
-	this->unmCallingConvention = this->GetCallingConvention(bWholeScan);
+	this->unmCallingConvention = this->ScanForCallingConvention();
 	auto chronoEnd = std::chrono::high_resolution_clock::now();
 	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
 }
@@ -51,20 +51,12 @@ bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 	return false;
 }
 
-UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool bWholeScan) const
+UnmanagedCallingConvention CallingConventionDetector::ScanForCallingConvention() const
 {
 	UnmanagedCallingConvention unmCallingConvention = UnmanagedFailure;
-	std::vector<uint32_t> references;
-
-	if (bWholeScan)
-	{
-		const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
-		const uint32_t uiRuntimeBaseAddress = pish->VirtualAddress + this->m_BaseData;
-		references = GetXRefs(uiRuntimeBaseAddress, pish->Misc.VirtualSize); //defeat padding
-	}
-	else
-		references = GetXRefs(this->m_Address - 0x40000, 0x80000);
-
+	const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
+	const std::vector<uint32_t> references = GetXRefs(pish->VirtualAddress + this->m_BaseData, pish->Misc.VirtualSize);;
+	
 	if (!references.empty())
 	{
 		int counter = 0;
@@ -73,8 +65,7 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 		{
 			if (this->CallerCleansUpStack(reference))
 			{
-				unmCallingConvention = UnmanagedCdecl;
-				break;
+				return UnmanagedCdecl;
 			}
 			if (this->SetsEdxOrEcxRegister(reference))
 			{
@@ -82,11 +73,8 @@ UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention(bool 
 			}
 		}
 
-		if (unmCallingConvention != UnmanagedCdecl)
-		{
-			const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
-			unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
-		}
+		const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
+		unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
 	}
 
 	return unmCallingConvention;
@@ -129,7 +117,9 @@ void CallingConventionDetector::FindNeedleInHayStack(const uint32_t& target, std
 		if (*reinterpret_cast<PBYTE>(uiCurrentAddress) == 0xE8)
 		{
 			if (*reinterpret_cast<uint32_t*>(uiCurrentAddress + 1) == (target - uiCurrentAddress - 5))
+			{
 				xrefs->push_back(uiCurrentAddress);
+			}
 		}
 	}
 }
@@ -157,8 +147,7 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	}
 	
 	for (std::thread& thread : threads)
-		if (thread.joinable())
-			thread.join();
+		thread.join();
 	
 	return xrefs;
 }
