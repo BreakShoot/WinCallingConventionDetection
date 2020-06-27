@@ -54,8 +54,10 @@ public:
 		this->m_Address = dwAddress;
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		ccDetector->PrintCallingConvention();
 		if (bRetCheck)
 			this->RemoveReturnCheck();
+		printf("addr: %04x\n", this->m_Address);
 		delete ccDetector;
 	}
 
@@ -64,6 +66,7 @@ public:
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
+		ccDetector->PrintCallingConvention();
 		if (bRetCheck)
 			this->RemoveReturnCheck();
 		delete ccDetector;
@@ -98,7 +101,7 @@ private:
 		do
 		{
 			szFunctionSize += 0x10;
-		} while (*reinterpret_cast<short*>(this->m_Address + szFunctionSize) != -29867 && *reinterpret_cast<BYTE*>(this->m_Address + szFunctionSize + 3) != 0xEC);
+		} while (memcmp(reinterpret_cast<const void*>(this->m_Address + szFunctionSize), "\x55\x8B\xEC", 3) != 0);
 
 
 		lpAllocation = VirtualAlloc(NULL, szFunctionSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
@@ -116,11 +119,10 @@ private:
 				i += 4; //don't scan rel32
 			}
 
-			if (*reinterpret_cast<short*>(uiAllocAdr) == 0x1B72 && *reinterpret_cast<BYTE*>(uiAllocAdr + 2) == 0xA1)
+			if (memcmp(reinterpret_cast<const void*>(uiAllocAdr), "\x72\x1B\xA1", 3) == 0)
 			{
 				bRetcheck = true;
-				*reinterpret_cast<short*>(uiAllocAdr - 0x6) = 0x21EB; //jmp 0x21 offset
-				memset(reinterpret_cast<void*>(uiAllocAdr - 0x4), 0x90, 4); //nop 4 bytes since we overwrote a cmp
+				memcpy(reinterpret_cast<void*>(uiAllocAdr - 0x6), "\xEB\x21\x90\x90\x90\x90", 6);
 				i += 0x1C; //retcheck is 0x1C bytes so we don't need to scan those anymore
 			}
 		}

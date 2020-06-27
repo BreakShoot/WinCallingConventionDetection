@@ -1,4 +1,6 @@
 #include "CallingConventionDetector.hpp"
+#include <functional>
+#include <algorithm>
 #include <thread>
 
 
@@ -6,7 +8,34 @@ CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_
 {
 	this->m_Address = uiAddress;
 	this->m_PEParser = new PEParser32(uiData);
+	auto chronoStart = std::chrono::high_resolution_clock::now();
 	this->unmCallingConvention = this->ScanForCallingConvention();
+	auto chronoEnd = std::chrono::high_resolution_clock::now();
+	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
+}
+
+void CallingConventionDetector::PrintCallingConvention() const
+{
+	char* ccCallingConventionStr = nullptr;
+
+	switch (this->unmCallingConvention)
+	{
+	case UnmanagedCdecl:
+		ccCallingConventionStr = (char*)"__cdecl";
+		break;
+	case UnmanagedStdcall:
+		ccCallingConventionStr = (char*)"__stdcall";
+		break;
+	case UnmanagedFastcall:
+		ccCallingConventionStr = (char*)"__fastcall";
+		break;
+	case UnmanagedFailure:
+		ccCallingConventionStr = (char*)"__failure";
+		break;
+	}
+
+
+	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
 }
 
 CallingConventionDetector::~CallingConventionDetector()
@@ -49,9 +78,8 @@ bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 
 UnmanagedCallingConvention CallingConventionDetector::ScanForCallingConvention() const
 {
-	UnmanagedCallingConvention unmCallingConvention = UnmanagedFailure;
 	const PIMAGE_SECTION_HEADER pish = this->m_PEParser->GetSectionHeader(".text");
-	const std::vector<uint32_t> references = GetXRefs(pish->VirtualAddress + this->m_BaseData, pish->Misc.VirtualSize);;
+	const std::vector<uint32_t> references = GetXRefs(pish->VirtualAddress + this->m_BaseData, pish->Misc.VirtualSize);
 	
 	if (!references.empty())
 	{
@@ -60,20 +88,16 @@ UnmanagedCallingConvention CallingConventionDetector::ScanForCallingConvention()
 		for (const uint32_t& reference : references)
 		{
 			if (this->CallerCleansUpStack(reference))
-			{
 				return UnmanagedCdecl;
-			}
 			if (this->SetsEdxOrEcxRegister(reference))
-			{
 				counter++;
-			}
 		}
 
 		const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
-		unmCallingConvention = (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
+		return (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
 	}
 
-	return unmCallingConvention;
+	return UnmanagedFailure;
 }
 
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() const
@@ -100,13 +124,10 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 {
 	std::vector<std::thread> threads;
 	std::vector<uint32_t> xrefs;
-	uint32_t page_amount = 0;
 	const uint32_t final_address = uiStartAddress + uiSearchLength;
-	
-	SYSTEM_INFO sysInfo;
-	GetSystemInfo(&sysInfo);
-	page_amount = (uiSearchLength / sysInfo.dwPageSize) + 1;
-	uint32_t uiThreadScanSize = sysInfo.dwPageSize * (page_amount / 5); //create 5-6 threads
+	const uint16_t page_size = 0x1000;
+	const uint32_t page_amount = (uiSearchLength / page_size) + 1;
+	uint32_t uiThreadScanSize = page_size * (page_amount / 5);
 	
 	for (uint32_t uiCurrentAddress = uiStartAddress; uiCurrentAddress < final_address; uiCurrentAddress += uiThreadScanSize)
 	{
@@ -120,7 +141,7 @@ std::vector<uint32_t> CallingConventionDetector::GetXRefs(const uint32_t& uiStar
 	
 	for (std::thread& thread : threads)
 		thread.join();
-	
+
 	return xrefs;
 }
 

@@ -57,14 +57,15 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 
 
     auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-	/*DWORD adr = fixOffset(0x1A1F524);
+	DWORD adr = fixOffset(0x1A367D4);
 	DWORD scr = Memory::Scan(PAGE_READWRITE, (char*)&adr, (char*)"xxxx");
-	DWORD ls = scr + 164 + *(DWORD*)(scr + 164);*/
+	DWORD ls = *(DWORD*)(scr + 164) - (scr + 164);
 	
 	auto getfield = UnmanagedPointer<void(uint32_t, int, const char*)>(fixOffset(0x11B5900));
-	auto tolstring = UnmanagedPointer<const char* (uint32_t, int, size_t*)>(fixOffset(0x11B72A0));
-	///*rlua_pushlstring(ls, "str", 3);*/
-	
+	auto remove = UnmanagedPointer<int(uint32_t, int)>(fixOffset(0x11B6B20));
+	getchar();
+	getfield(ls, -10002, "game");
+	remove(ls, -1);
 	
     getchar();
 	
