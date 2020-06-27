@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.props" Condition="Exists('..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -152,7 +153,18 @@
     <ClInclude Include="PEParser32.hpp" />
     <ClInclude Include="UnmanagedPointer.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.targets" Condition="Exists('..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.props'))" />
+    <Error Condition="!Exists('..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\vcpkg.C.Users.Nexus.vcpkg.1.0.0\build\native\vcpkg.C.Users.Nexus.vcpkg.targets'))" />
+  </Target>
 </Project>

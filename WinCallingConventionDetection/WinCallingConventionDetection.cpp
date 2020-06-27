@@ -1,44 +1,32 @@
 #include "UnmanagedPointer.hpp"
 
-
-namespace Memory
+uint32_t fixOffset(uint32_t address)
 {
-	bool Compare(const BYTE* pData, const BYTE* bMask, const char* szMask)
-	{
-		for (; *szMask; ++szMask, ++pData, ++bMask)
-			if (*szMask == 'x' && *pData != *bMask) return 0;
-		return (*szMask) == NULL;
-	}
+    return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr));
+}
 
-	DWORD FindPattern(DWORD dwAddress, DWORD dwLen, BYTE* bMask, char* szMask)
-	{
-		for (int i = 0; i < (int)dwLen; i++)
-			if (Compare((BYTE*)(dwAddress + (int)i), bMask, szMask))  return (int)(dwAddress + i);
-		return 0;
-	}
+DWORD lua_state = 0;
 
-	int Scan(DWORD mode, char* content, char* mask, DWORD Offset = 0)
-	{
-		DWORD PageSize;
-		SYSTEM_INFO si;
-		GetNativeSystemInfo(&si);
-		PageSize = si.dwPageSize;
-		MEMORY_BASIC_INFORMATION mi;
-		for (DWORD lpAddr = (DWORD)GetModuleHandleA(0) + Offset; lpAddr < 0x7FFFFFFF; lpAddr += PageSize)
-		{
-			DWORD vq = VirtualQuery((void*)lpAddr, &mi, sizeof(MEMORY_BASIC_INFORMATION));
-			if (vq == ERROR_INVALID_PARAMETER || vq == 0) break;
-			if (mi.Type == MEM_MAPPED) continue;
-			if (mi.Protect == mode)
-			{
-				int addr = FindPattern(lpAddr, PageSize, (PBYTE)content, mask);
-				if (addr != 0)
-				{
-					return addr;
-				}
-			}
-		}
-	}
+
+void MakeJMP(BYTE* pAddress, DWORD dwJumpTo)
+{
+    DWORD dwOldProtect, dwBkup, dwRelAddr;
+    VirtualProtect(pAddress, 1, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+    dwRelAddr = (DWORD)(dwJumpTo - (DWORD)pAddress) - 5;
+    *pAddress = 0xE9;
+    *((DWORD*)(pAddress + 0x1)) = dwRelAddr;
+    VirtualProtect(pAddress, 1, dwOldProtect, &dwBkup);
+}
+
+
+void* __stdcall fake_index2adr(int a1, int a2)
+{
+    lua_state = a1;
+    DWORD oldp;
+    VirtualProtect((LPVOID)fixOffset(0x11B53F0), 1, PAGE_EXECUTE_READWRITE, &oldp);
+    memcpy((LPVOID)fixOffset(0x11B53F0), "\x55\x8B\xEC\x8B\x55", 5);
+    VirtualProtect((LPVOID)fixOffset(0x11B53F0), 1, oldp, &oldp);
+    return reinterpret_cast<void*(__stdcall*)(int, int)>(fixOffset(0x11B53F0))(a1, a2);
 }
 
 
@@ -55,17 +43,16 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
     freopen_s(&safe_handle_stream, "CONOUT$", "w", stdout);
     freopen_s(&safe_handle_stream, "CONOUT$", "w", stderr);
 
-
-    auto fixOffset = [](uint32_t address) -> uint32_t { return address - 0x400000 + reinterpret_cast<uint32_t>(GetModuleHandle(nullptr)); };
-	DWORD adr = fixOffset(0x1A367D4);
-	DWORD scr = Memory::Scan(PAGE_READWRITE, (char*)&adr, (char*)"xxxx");
-	DWORD ls = *(DWORD*)(scr + 164) - (scr + 164);
+    MakeJMP((BYTE*)fixOffset(0x11B53F0), (DWORD)fake_index2adr);
+    
+  
+    while (!lua_state)
+        Sleep(1);
 	
-	//auto getfield = UnmanagedPointer<void(uint32_t, int, const char*)>(fixOffset(0x11B5900));
+	auto getfield = UnmanagedPointer<void(uint32_t, int, const char*)>(fixOffset(0x11B5900));
 	auto push = UnmanagedPointer<int(uint32_t, int)>(fixOffset(0x11B6670));
 	getchar();
-	//getfield(ls, -10002, "game");
-	//push(ls, -1);
+	getfield(lua_state, -10002, "game");
 	
     getchar();
 	

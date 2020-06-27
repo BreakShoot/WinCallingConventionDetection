@@ -10,8 +10,8 @@ CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_
 	this->m_PEParser = new PEParser32(uiData);
 	//auto chronoStart = std::chrono::high_resolution_clock::now();
 	this->unmCallingConvention = this->ScanForCallingConvention();
-	//auto chronoEnd = std::chrono::high_resolution_clock::now();
-	//this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
+	/*auto chronoEnd = std::chrono::high_resolution_clock::now();
+	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();*/
 }
 
 //void CallingConventionDetector::PrintCallingConvention() const
