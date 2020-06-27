@@ -18,11 +18,11 @@ public:
 
 		switch (this->m_CallingConvention)
 		{
-		case UnmanagedCdecl:
+		case UnmanagedCallingConvention::UnmanagedCdecl:
 			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
-		case UnmanagedStdcall:
+		case UnmanagedCallingConvention::UnmanagedStdcall:
 			return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)(params...);
-		case UnmanagedFastcall:
+		case UnmanagedCallingConvention::UnmanagedFastcall:
 			return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)(params...);
 		default:
 			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)(params...);
@@ -38,11 +38,11 @@ public:
 
 		switch (this->m_CallingConvention)
 		{
-		case UnmanagedCdecl:
+		case UnmanagedCallingConvention::UnmanagedCdecl:
 			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
-		case UnmanagedStdcall:
+		case UnmanagedCallingConvention::UnmanagedStdcall:
 			return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)();
-		case UnmanagedFastcall:
+		case UnmanagedCallingConvention::UnmanagedFastcall:
 			return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)();
 		default:
 			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
@@ -54,10 +54,9 @@ public:
 		this->m_Address = dwAddress;
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
-		ccDetector->PrintCallingConvention();
+		//ccDetector->PrintCallingConvention();
 		if (bRetCheck)
 			this->RemoveReturnCheck();
-		printf("addr: %04x\n", this->m_Address);
 		delete ccDetector;
 	}
 
@@ -66,7 +65,7 @@ public:
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
-		ccDetector->PrintCallingConvention();
+		//ccDetector->PrintCallingConvention();
 		if (bRetCheck)
 			this->RemoveReturnCheck();
 		delete ccDetector;

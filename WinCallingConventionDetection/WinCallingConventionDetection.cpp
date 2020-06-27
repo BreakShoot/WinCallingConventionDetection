@@ -61,11 +61,11 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
 	DWORD scr = Memory::Scan(PAGE_READWRITE, (char*)&adr, (char*)"xxxx");
 	DWORD ls = *(DWORD*)(scr + 164) - (scr + 164);
 	
-	auto getfield = UnmanagedPointer<void(uint32_t, int, const char*)>(fixOffset(0x11B5900));
-	auto remove = UnmanagedPointer<int(uint32_t, int)>(fixOffset(0x11B6B20));
+	//auto getfield = UnmanagedPointer<void(uint32_t, int, const char*)>(fixOffset(0x11B5900));
+	auto push = UnmanagedPointer<int(uint32_t, int)>(fixOffset(0x11B6670));
 	getchar();
-	getfield(ls, -10002, "game");
-	remove(ls, -1);
+	//getfield(ls, -10002, "game");
+	//push(ls, -1);
 	
     getchar();
 	

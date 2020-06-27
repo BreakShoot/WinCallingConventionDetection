@@ -8,35 +8,35 @@ CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_
 {
 	this->m_Address = uiAddress;
 	this->m_PEParser = new PEParser32(uiData);
-	auto chronoStart = std::chrono::high_resolution_clock::now();
+	//auto chronoStart = std::chrono::high_resolution_clock::now();
 	this->unmCallingConvention = this->ScanForCallingConvention();
-	auto chronoEnd = std::chrono::high_resolution_clock::now();
-	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
+	//auto chronoEnd = std::chrono::high_resolution_clock::now();
+	//this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
 }
 
-void CallingConventionDetector::PrintCallingConvention() const
-{
-	char* ccCallingConventionStr = nullptr;
-
-	switch (this->unmCallingConvention)
-	{
-	case UnmanagedCdecl:
-		ccCallingConventionStr = (char*)"__cdecl";
-		break;
-	case UnmanagedStdcall:
-		ccCallingConventionStr = (char*)"__stdcall";
-		break;
-	case UnmanagedFastcall:
-		ccCallingConventionStr = (char*)"__fastcall";
-		break;
-	case UnmanagedFailure:
-		ccCallingConventionStr = (char*)"__failure";
-		break;
-	}
-
-
-	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
-}
+//void CallingConventionDetector::PrintCallingConvention() const
+//{
+//	char* ccCallingConventionStr = nullptr;
+//
+//	switch (this->unmCallingConvention)
+//	{
+//	case UnmanagedCallingConvention::UnmanagedCdecl:
+//		ccCallingConventionStr = (char*)"__cdecl";
+//		break;
+//	case UnmanagedCallingConvention::UnmanagedStdcall:
+//		ccCallingConventionStr = (char*)"__stdcall";
+//		break;
+//	case UnmanagedCallingConvention::UnmanagedFastcall:
+//		ccCallingConventionStr = (char*)"__fastcall";
+//		break;
+//	case UnmanagedCallingConvention::UnmanagedFailure:
+//		ccCallingConventionStr = (char*)"__failure";
+//		break;
+//	}
+//
+//
+//	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
+//}
 
 CallingConventionDetector::~CallingConventionDetector()
 {
@@ -67,7 +67,7 @@ bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 {
 	uint32_t uiStartAddress = uiAddress + 5; //next statement
 
-	while (*reinterpret_cast<PBYTE>(uiStartAddress) != 0xE8 || *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC3 || *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC2)  //call/ret/retn
+	while (*reinterpret_cast<PBYTE>(uiStartAddress) != 0xE8 && *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC3 && *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC2)  //call/ret/retn
 	{
 		if (*reinterpret_cast<PBYTE>(uiStartAddress++) == 0x83 && *reinterpret_cast<PBYTE>(uiStartAddress) == 0xC4) // add esp 
 			return true;
@@ -88,16 +88,16 @@ UnmanagedCallingConvention CallingConventionDetector::ScanForCallingConvention()
 		for (const uint32_t& reference : references)
 		{
 			if (this->CallerCleansUpStack(reference))
-				return UnmanagedCdecl;
+				return UnmanagedCallingConvention::UnmanagedCdecl;
 			if (this->SetsEdxOrEcxRegister(reference))
 				counter++;
 		}
 
 		const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
-		return (percentage >= 0.2) ? UnmanagedFastcall : UnmanagedStdcall; //you can modify this yourself.
+		return (percentage >= 0.2) ? UnmanagedCallingConvention::UnmanagedFastcall : UnmanagedCallingConvention::UnmanagedStdcall; //you can modify this yourself.
 	}
 
-	return UnmanagedFailure;
+	return UnmanagedCallingConvention::UnmanagedFailure;
 }
 
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() const

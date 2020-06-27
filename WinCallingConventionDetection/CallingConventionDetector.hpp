@@ -3,7 +3,7 @@
 #include "vector"
 #include <chrono> 
 
-enum UnmanagedCallingConvention
+enum class UnmanagedCallingConvention : unsigned char
 {
 	UnmanagedCdecl,
 	UnmanagedStdcall,
@@ -16,7 +16,7 @@ class CallingConventionDetector
 public:
 	CallingConventionDetector(uint32_t uiAddress, uint32_t uiData);
 	~CallingConventionDetector();
-	void PrintCallingConvention() const;
+	//void PrintCallingConvention() const;
 	UnmanagedCallingConvention GetCallingConvention() const;
 	
 private:
@@ -26,7 +26,7 @@ private:
 	UnmanagedCallingConvention ScanForCallingConvention() const;
 	std::vector<uint32_t> GetXRefs(const uint32_t& uiStartAddress, const uint32_t& uiSearchLength) const;
 	UnmanagedCallingConvention unmCallingConvention;
-	unsigned long long m_Duration;
+	//unsigned long long m_Duration;
 	uint32_t m_Address;
 	uint32_t m_BaseData;
 	PEParser32 *m_PEParser;
