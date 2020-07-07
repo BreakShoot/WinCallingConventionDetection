@@ -50,9 +50,18 @@ DWORD WINAPI InitializeTest(LPVOID lpThreadParameter)
         Sleep(1);
 	
 	auto getfield = UnmanagedPointer<void(uint32_t, int, const char*)>(fixOffset(0x11B5900));
-	auto push = UnmanagedPointer<int(uint32_t, int)>(fixOffset(0x11B6670));
+	auto pushvalue = UnmanagedPointer<int(uint32_t, int)>(fixOffset(0x11B6670));
+    auto pcall = UnmanagedPointer<int(uint32_t, int, int, int)>(fixOffset(0x11B6080));
 	getchar();
-	getfield(lua_state, -10002, "game");
+
+
+    getfield(lua_state, -10002, "game");
+    getfield(lua_state, -1, "Players");
+    getfield(lua_state, -1, "LocalPlayer");
+    getfield(lua_state, -1, "Character");
+    getfield(lua_state, -1, "BreakJoints");
+    pushvalue(lua_state, -2);
+    pcall(lua_state, 1, 0, 0);
 	
     getchar();
 	

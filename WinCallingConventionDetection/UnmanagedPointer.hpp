@@ -7,7 +7,6 @@ template<typename t_Function>
 class UnmanagedPointer
 {
 public:
-
 	template<typename... t_FunctionParameters>
 	auto operator()(t_FunctionParameters... params)
 	{
@@ -31,7 +30,7 @@ public:
 
 	auto operator()()
 	{
-		using result_type = decltype(std::declval<t_Function>());
+		using result_type = decltype(std::declval<t_Function>()());
 		using function_cdecl_ptr_t = result_type(__cdecl*)();
 		using function_stdcall_ptr_t = result_type(__stdcall*)();
 		using function_fastcall_ptr_t = result_type(_fastcall*)();
@@ -54,9 +53,9 @@ public:
 		this->m_Address = dwAddress;
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
-		//ccDetector->PrintCallingConvention();
-		if (bRetCheck)
-			this->RemoveReturnCheck();
+		ccDetector->PrintCallingConvention();
+		/*if (bRetCheck)
+			this->RemoveReturnCheck();*/
 		delete ccDetector;
 	}
 
@@ -65,9 +64,9 @@ public:
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
-		//ccDetector->PrintCallingConvention();
-		if (bRetCheck)
-			this->RemoveReturnCheck();
+		ccDetector->PrintCallingConvention();
+		/*if (bRetCheck)
+			this->RemoveReturnCheck();*/
 		delete ccDetector;
 	}
 
