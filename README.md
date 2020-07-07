@@ -10,7 +10,7 @@ A small library written up to detect the Calling Convention of x86 processes at 
 * Optimized and multithreaded (~8ms whole .text section scan, less than ~1ms lualib scan)
 
 # Method
-1)  Dynamically resolve all XRefs within the lua library range (0x80000 bytes), or scan the whole text section. This can be set when UnmanagedPointer initializes the CallingConventionDetector class within the constructor!
+1) Dynamically resolve all XRefs within the .text section range.
 2) Check if the stack is cleaned up by any callers -> __cdecl
 3) Detect if edx/ecx registers are set before calls -> __fastcall
 4) Decipher between stdcall and fastcall by utilizing an algorithm. 
