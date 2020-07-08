@@ -8,34 +8,7 @@ CallingConventionDetector::CallingConventionDetector(uint32_t uiAddress, uint32_
 {
 	this->m_Address = uiAddress;
 	this->m_PEParser = new PEParser32(uiData);
-	auto chronoStart = std::chrono::high_resolution_clock::now();
 	this->unmCallingConvention = this->ScanForCallingConvention();
-	auto chronoEnd = std::chrono::high_resolution_clock::now();
-	this->m_Duration = std::chrono::duration_cast<std::chrono::milliseconds>(chronoEnd - chronoStart).count();
-}
-
-void CallingConventionDetector::PrintCallingConvention() const
-{
-	char* ccCallingConventionStr = nullptr;
-
-	switch (this->unmCallingConvention)
-	{
-	case UnmanagedCallingConvention::UnmanagedCdecl:
-		ccCallingConventionStr = (char*)"__cdecl";
-		break;
-	case UnmanagedCallingConvention::UnmanagedStdcall:
-		ccCallingConventionStr = (char*)"__stdcall";
-		break;
-	case UnmanagedCallingConvention::UnmanagedFastcall:
-		ccCallingConventionStr = (char*)"__fastcall";
-		break;
-	case UnmanagedCallingConvention::UnmanagedFailure:
-		ccCallingConventionStr = (char*)"__failure";
-		break;
-	}
-
-
-	printf("Address = 0x%04x | Calling Convention = %s | Scan Time = %lldms\n", this->m_Address, ccCallingConventionStr, this->m_Duration);
 }
 
 CallingConventionDetector::~CallingConventionDetector()
@@ -96,8 +69,29 @@ UnmanagedCallingConvention CallingConventionDetector::ScanForCallingConvention()
 		const float percentage = static_cast<float>(counter) / static_cast<float>(references.size());
 		return (percentage >= 0.2) ? UnmanagedCallingConvention::UnmanagedFastcall : UnmanagedCallingConvention::UnmanagedStdcall; //you can modify this yourself.
 	}
+	else
+	{
+		//this is bad -> forward to next function start and then find the return statement of our function.
+		//drawback is can't decipher between __stdcall and __fastcall so we will just pick fastcall
+		size_t szFunctionSize = 0;
+	
+		do
+		{
+			szFunctionSize += 0x10;
+		} while (memcmp(reinterpret_cast<const void*>(this->m_Address + szFunctionSize), "\x55\x8B\xEC", 3) != 0);
 
-	return UnmanagedCallingConvention::UnmanagedFailure;
+		uint32_t uiNextFunctionAddress = this->m_Address + szFunctionSize;
+		
+		while (true)
+		{
+			uiNextFunctionAddress--;
+			
+			if (*reinterpret_cast<PBYTE>(uiNextFunctionAddress) == 0xC3)
+				return UnmanagedCallingConvention::UnmanagedCdecl;
+			if (*reinterpret_cast<PBYTE>(uiNextFunctionAddress) == 0xC2)
+				return UnmanagedCallingConvention::UnmanagedFastcall;
+		}
+	}
 }
 
 UnmanagedCallingConvention CallingConventionDetector::GetCallingConvention() const

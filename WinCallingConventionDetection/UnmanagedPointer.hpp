@@ -28,34 +28,13 @@ public:
 		}
 	}
 
-	auto operator()()
-	{
-		using result_type = decltype(std::declval<t_Function>()());
-		using function_cdecl_ptr_t = result_type(__cdecl*)();
-		using function_stdcall_ptr_t = result_type(__stdcall*)();
-		using function_fastcall_ptr_t = result_type(_fastcall*)();
-
-		switch (this->m_CallingConvention)
-		{
-		case UnmanagedCallingConvention::UnmanagedCdecl:
-			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
-		case UnmanagedCallingConvention::UnmanagedStdcall:
-			return reinterpret_cast<function_stdcall_ptr_t>(this->m_Address)();
-		case UnmanagedCallingConvention::UnmanagedFastcall:
-			return reinterpret_cast<function_fastcall_ptr_t>(this->m_Address)();
-		default:
-			return reinterpret_cast<function_cdecl_ptr_t>(this->m_Address)();
-		}
-	}
-
 	UnmanagedPointer(uint32_t dwAddress, uint32_t dwBaseAddress = reinterpret_cast<uint32_t>(GetModuleHandle(NULL)), bool bRetCheck = true)
 	{
 		this->m_Address = dwAddress;
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
-		ccDetector->PrintCallingConvention();
-		/*if (bRetCheck)
-			this->RemoveReturnCheck();*/
+		if (bRetCheck)
+			this->RemoveReturnCheck();
 		delete ccDetector;
 	}
 
@@ -64,9 +43,8 @@ public:
 		this->m_Address = this->FindPattern(bMask, szMask, dwBaseAddress, dwLen);
 		auto* ccDetector = new CallingConventionDetector(this->m_Address, dwBaseAddress);
 		this->m_CallingConvention = ccDetector->GetCallingConvention();
-		ccDetector->PrintCallingConvention();
-		/*if (bRetCheck)
-			this->RemoveReturnCheck();*/
+		if (bRetCheck)
+			this->RemoveReturnCheck();
 		delete ccDetector;
 	}
 
