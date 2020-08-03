@@ -41,7 +41,8 @@ bool CallingConventionDetector::CallerCleansUpStack(const uint32_t& uiAddress)
 	uint32_t uiStartAddress = uiAddress + 5; //next statement
 
 	while (*reinterpret_cast<PBYTE>(uiStartAddress) != 0xE8 && *reinterpret_cast<PBYTE>(uiStartAddress) != 0xC3 && *
-		reinterpret_cast<PBYTE>(uiStartAddress) != 0xC2) //call/ret/retn
+		reinterpret_cast<PBYTE>(uiStartAddress) != 0xC2 && *reinterpret_cast<PBYTE>(uiStartAddress) != 0xFF)
+		//call/ret/retn
 	{
 		if (*reinterpret_cast<PBYTE>(uiStartAddress++) == 0x83 && *reinterpret_cast<PBYTE>(uiStartAddress) == 0xC4)
 			// add esp 
